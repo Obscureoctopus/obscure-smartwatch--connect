@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCTOPUS OS</title>
+<meta name="theme-color" content="#0a0e14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root {
+    --bg: #0a0e14; --panel: #121826; --card: #1a2234;
+    --accent: #00e5a0; --accent2: #4da3ff; --danger: #ff4d6d; --warn: #ffc857;
+    --text: #e8edf5; --dim: #8b95a8; --theme: #00e5a0;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
+  body { background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; gap:36px; padding:26px; flex-wrap:wrap; }
+  h1 { font-size:20px; letter-spacing:2px; }
+  h2 { font-size:13px; color:var(--dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; }
+  .brand { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .brand .dot { width:10px; height:10px; border-radius:50%; background:var(--theme); box-shadow:0 0 10px var(--theme); }
+
+  /* WATCH */
+  .watch-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .watch { width:330px; height:330px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #1c2436, #0c111c 70%);
+    border:8px solid #232c42; box-shadow:0 20px 60px rgba(0,0,0,.7), inset 0 0 30px rgba(0,0,0,.6);
+    position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  .strap-top,.strap-bottom { width:140px; height:44px; background:linear-gradient(#1a2132,#141a29); border-radius:10px 10px 0 0; }
+  .strap-bottom { border-radius:0 0 10px 10px; }
+  .watch-screen { width:270px; height:270px; border-radius:50%; overflow:hidden; position:relative; background:#05080f; display:flex; flex-direction:column; }
+  .watch-header { text-align:center; padding-top:16px; font-size:11px; color:var(--dim); flex-shrink:0; }
+  .watch-body { flex:1; overflow-y:auto; padding:6px 20px 58px; scrollbar-width:none; }
+  .watch-body::-webkit-scrollbar { display:none; }
+  .watch-nav { position:absolute; bottom:10px; left:0; right:0; display:flex; justify-content:center; gap:12px; z-index:5; }
+  .nav-btn { background:#141b2c; border:1px solid #2a3450; color:var(--dim); width:38px; height:26px; border-radius:12px; font-size:11px; cursor:pointer; }
+  .nav-btn:hover { color:var(--theme); border-color:var(--theme); }
+
+  .face { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:4px; }
+  .face .time { font-size:42px; font-weight:200; letter-spacing:2px; color:var(--theme); }
+  .face .date { font-size:11px; color:var(--dim); }
+  .comps { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; justify-content:center; max-width:200px; }
+  .comp { font-size:9px; background:rgba(255,255,255,.06); border:1px solid #232d45; border-radius:8px; padding:3px 7px; color:var(--dim); }
+  .comp b { color:var(--theme); }
+
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; padding-top:8px; }
+  .app-icon { aspect-ratio:1; border-radius:18px; background:var(--card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; border:1px solid #232d45; font-size:9px; color:var(--dim); transition:transform .15s,border-color .15s; text-align:center; padding:2px; }
+  .app-icon:hover { transform:scale(1.08); border-color:var(--theme); }
+  .app-icon .glyph { font-size:19px; }
+  .badge { position:absolute; margin-left:32px; margin-top:-6px; background:var(--danger); color:#fff; border-radius:8px; font-size:8px; padding:1px 4px; }
+
+  .w-msg { background:var(--card); border-radius:10px; padding:7px 9px; margin-bottom:6px; font-size:10px; border-left:2px solid var(--accent2); }
+  .w-msg .from { color:var(--theme); font-weight:600; }
+  .w-msg.me { border-left-color:var(--theme); text-align:right; }
+  .w-input { display:flex; gap:5px; margin-top:6px; }
+  .w-input input { flex:1; background:#141b2c; border:1px solid #2a3450; border-radius:8px; color:var(--text); font-size:10px; padding:5px 7px; outline:none; min-width:0; }
+  .w-input button,.w-btn { background:var(--theme); color:#04140d; border:none; border-radius:8px; padding:5px 9px; font-size:10px; font-weight:600; cursor:pointer; }
+  .qreplies { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+  .qreply { background:#141b2c; border:1px solid #2a3450; color:var(--dim); font-size:9px; border-radius:12px; padding:3px 8px; cursor:pointer; }
+  .qreply:hover { color:var(--theme); border-color:var(--theme); }
+
+  .call { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:10px; }
+  .call .avatar { width:68px; height:68px; border-radius:50%; background:linear-gradient(135deg,var(--accent2),var(--theme)); display:flex; align-items:center; justify-content:center; font-size:26px; }
+  .call .status { font-size:11px; color:var(--dim); }
+  .call-actions { display:flex; gap:20px; }
+  .call-btn { width:46px; height:46px; border-radius:50%; border:none; font-size:18px; cursor:pointer; }
+  .cb-end { background:var(--danger); } .cb-mute { background:#2a3450; color:var(--text); }
+
+  /* health watch */
+  .hr-big { text-align:center; margin-top:10px; }
+  .hr-big .val { font-size:40px; color:var(--danger); font-weight:200; }
+  .hr-big .lab { font-size:9px; color:var(--dim); }
+  .hrow { display:flex; justify-content:space-between; font-size:10px; padding:5px 0; border-bottom:1px solid #1c2438; }
+  .hrow .v { color:var(--theme); font-weight:600; }
+  #ecg { width:100%; height:52px; background:#05080f; border-radius:8px; margin-top:8px; border:1px solid #1c2438; }
+  .sleepbar { display:flex; height:14px; border-radius:7px; overflow:hidden; margin-top:6px; }
+  .sleepbar div { height:100%; }
+  .sl-legend { display:flex; gap:6px; font-size:8px; color:var(--dim); margin-top:4px; flex-wrap:wrap; }
+
+  /* nav watch */
+  .navbig { font-size:34px; text-align:center; margin-top:8px; }
+  .navstep { font-size:11px; text-align:center; color:var(--text); padding:0 8px; }
+  .navdist { font-size:22px; text-align:center; color:var(--theme); margin:4px 0; }
+  .haptic { text-align:center; font-size:10px; margin-top:8px; color:var(--dim); }
+  .pulse { display:inline-block; width:12px; height:12px; border-radius:50%; background:var(--theme); opacity:.25; margin:0 3px; vertical-align:middle; }
+  .pulse.on { opacity:1; box-shadow:0 0 12px var(--theme); }
+
+  /* wallet watch */
+  .wcard { background:linear-gradient(135deg,#1d2a45,#101728); border:1px solid #2a3450; border-radius:12px; padding:10px; margin-top:8px; }
+  .wcard .brandname { font-size:12px; font-weight:700; color:var(--accent2); }
+  .wcard .num { font-size:11px; color:var(--dim); margin-top:4px; letter-spacing:1px; }
+  .paypulse { text-align:center; margin-top:10px; font-size:11px; color:var(--theme); }
+
+  /* media watch */
+  .np { text-align:center; margin-top:14px; }
+  .np .art { width:64px; height:64px; border-radius:12px; background:linear-gradient(135deg,var(--accent2),var(--theme)); margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-size:26px; }
+  .np .t { font-size:12px; } .np .a { font-size:10px; color:var(--dim); }
+  .m-controls { display:flex; justify-content:center; gap:16px; margin-top:10px; font-size:18px; }
+  .m-controls span { cursor:pointer; } .m-controls span:hover { color:var(--theme); }
+  .progress { height:4px; background:#1c2438; border-radius:2px; margin:10px 24px; }
+  .progress div { height:100%; background:var(--theme); border-radius:2px; width:0%; }
+
+  /* assistant watch */
+  .asst { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:8px; text-align:center; }
+  .asst .orb { width:54px; height:54px; border-radius:50%; background:radial-gradient(circle at 35% 30%,var(--theme),#0a5); animation:breath 2s infinite ease-in-out; display:flex; align-items:center; justify-content:center; font-size:22px; }
+  @keyframes breath { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+  .asst .resp { font-size:11px; color:var(--text); padding:0 14px; line-height:1.5; }
+
+  /* PHONE */
+  .phone { width:400px; max-height:92vh; overflow-y:auto; background:var(--panel); border:1px solid #232d45; border-radius:20px; padding:20px; }
+  .tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .tab { background:var(--card); border:1px solid #232d45; color:var(--dim); padding:7px 11px; border-radius:10px; font-size:12px; cursor:pointer; }
+  .tab.active { border-color:var(--theme); color:var(--theme); }
+  .card { background:var(--card); border:1px solid #232d45; border-radius:12px; padding:14px; margin-bottom:12px; font-size:13px; }
+  .card p { color:var(--dim); font-size:12px; margin-top:4px; line-height:1.5; }
+  input.f,select.f { width:100%; background:#0d1320; border:1px solid #2a3450; border-radius:8px; color:var(--text); padding:8px 10px; font-size:13px; outline:none; margin-bottom:8px; }
+  button.go { background:var(--theme); color:#04140d; border:none; border-radius:8px; padding:9px 16px; font-weight:700; font-size:13px; cursor:pointer; width:100%; }
+  button.go:hover { filter:brightness(1.15); }
+  .mod-item { display:flex; align-items:center; gap:10px; background:#0d1320; border:1px solid #2a3450; border-radius:10px; padding:8px 10px; margin-bottom:6px; font-size:12px; }
+  .mod-item .ic { font-size:18px; }
+  .mod-item button { margin-left:auto; background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:6px; padding:2px 8px; cursor:pointer; font-size:11px; }
+  .log { font-family:monospace; font-size:11px; color:var(--theme); background:#05080f; border-radius:10px; padding:12px; max-height:120px; overflow-y:auto; line-height:1.7; }
+  .pill { display:inline-block; font-size:10px; background:rgba(0,229,160,.15); color:var(--theme); border-radius:20px; padding:2px 9px; margin-left:6px; }
+  .msg-row { display:flex; margin-bottom:5px; font-size:12px; }
+  .msg-row.sent { justify-content:flex-end; }
+  .msg-row .bub { max-width:75%; background:#0d1320; border:1px solid #2a3450; border-radius:10px; padding:6px 10px; }
+  .msg-row.sent .bub { background:rgba(0,229,160,.12); border-color:var(--theme); }
+  .hgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat { background:#0d1320; border:1px solid #2a3450; border-radius:10px; padding:10px; text-align:center; }
+  .stat .v { font-size:20px; font-weight:600; } .stat .l { font-size:10px; color:var(--dim); }
+  #ecg-big { width:100%; height:70px; background:#05080f; border-radius:10px; border:1px solid #2a3450; margin-bottom:8px; }
+  .swatches { display:flex; gap:8px; margin-bottom:8px; }
+  .sw { width:28px; height:28px; border-radius:50%; border:2px solid #2a3450; cursor:pointer; }
+  .sw.sel { border-color:#fff; transform:scale(1.15); }
+  .faceopt { display:flex; align-items:center; gap:8px; font-size:12px; padding:6px 0; }
+  .card-row { display:flex; align-items:center; gap:10px; background:#0d1320; border:1px solid #2a3450; border-radius:10px; padding:8px 10px; margin-bottom:6px; font-size:12px; cursor:pointer; }
+  .card-row.sel { border-color:var(--accent2); }
+  .track { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #1c2438; font-size:12px; }
+  .track .sync { margin-left:auto; }
+  .chk { display:flex; align-items:center; gap:8px; font-size:12px; padding:5px 0; }
+  @media (max-width: 700px) {
+    body { flex-direction: column; gap: 18px; padding: 14px; align-items: stretch; }
+    .watch-wrap { order: 0; }
+    .watch { transform: scale(.82); margin: -26px 0; }
+    .phone { width: 100%; border-radius: 16px; max-height: none; overflow-y: visible; padding: 14px; }
+    h1 { font-size: 17px; }
+    .tabs { font-size: 11px; gap: 4px; }
+    .tab { padding: 6px 9px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="watch-wrap">
+  <div class="strap-top"></div>
+  <div class="watch">
+    <div class="watch-screen" id="wscreen"></div>
+  </div>
+  <div class="strap-bottom"></div>
+</div>
+
+<div class="phone">
+  <div class="brand"><div class="dot"></div><h1>OCTOPUS OS</h1><span class="pill">v2.0 dev</span></div>
+  <h2>Companion Console</h2>
+  <div class="tabs">
+    <button class="tab active" data-tab="mods" onclick="showTab('mods')">Mods</button>
+    <button class="tab" data-tab="health" onclick="showTab('health')">Health</button>
+    <button class="tab" data-tab="ai" onclick="showTab('ai')">Assistant</button>
+    <button class="tab" data-tab="msgs" onclick="showTab('msgs')">Msgs</button>
+    <button class="tab" data-tab="calls" onclick="showTab('calls')">Calls</button>
+    <button class="tab" data-tab="wallet" onclick="showTab('wallet')">Wallet</button>
+    <button class="tab" data-tab="nav" onclick="showTab('nav')">Nav</button>
+    <button class="tab" data-tab="media" onclick="showTab('media')">Media</button>
+    <button class="tab" data-tab="faces" onclick="showTab('faces')">Faces</button>
+    <button class="tab" data-tab="tactical" onclick="showTab('tactical')">Tactical</button>
+  </div>
+
+  <div id="tab-mods">
+    <div class="card"><b>Mod Injector</b><p>Flash custom modules into the watch firmware. Anything you inject lands on the watch instantly.</p></div>
+    <div class="card">
+      <input class="f" id="m-name" placeholder="Module name (e.g. Crypto Ticker)">
+      <input class="f" id="m-icon" placeholder="Icon emoji (e.g. 🪙)" maxlength="4">
+      <select class="f" id="m-type">
+        <option value="info">Info widget (shows live text)</option>
+        <option value="action">Action button (runs a script)</option>
+        <option value="ai">AI prompt (asks the assistant)</option>
+      </select>
+      <input class="f" id="m-payload" placeholder="Payload: message / script / prompt">
+      <button class="go" onclick="installMod()">⚡ Inject into firmware</button>
+    </div>
+    <div class="card"><b>Installed mods</b><div id="mod-list" style="margin-top:10px"></div></div>
+    <div class="card"><b>Flash log</b><div class="log" id="flashlog" style="margin-top:8px">[boot] octopus-os v2.0 ready</div></div>
+  </div>
+
+  <div id="tab-health" style="display:none">
+    <div class="card"><b>Advanced Vitals</b><p>Continuous HR, on-demand ECG, SpO2, skin temp, and sleep stage analysis streamed from the wrist sensors.</p></div>
+    <div class="card">
+      <div class="hgrid">
+        <div class="stat"><div class="v" style="color:var(--danger)" id="p-hr">72</div><div class="l">Heart Rate (bpm)</div></div>
+        <div class="stat"><div class="v" style="color:var(--accent2)" id="p-spo2">98%</div><div class="l">Blood Oxygen</div></div>
+        <div class="stat"><div class="v" style="color:var(--warn)" id="p-temp">33.6°C</div><div class="l">Skin Temp</div></div>
+        <div class="stat"><div class="v" style="color:var(--theme)" id="p-stress">31</div><div class="l">Stress Index</div></div>
+      </div>
+    </div>
+    <div class="card"><b>ECG (on-demand)</b><canvas id="ecg-big"></canvas>
+      <button class="go" onclick="runECG()">❤️ Take 30s ECG reading</button>
+      <p id="ecg-res" style="margin-top:8px"></p></div>
+    <div class="card"><b>Last night sleep</b>
+      <div class="sleepbar">
+        <div style="width:22%;background:#4da3ff" title="Deep"></div>
+        <div style="width:48%;background:#00e5a0" title="Light"></div>
+        <div style="width:18%;background:#ffc857" title="REM"></div>
+        <div style="width:12%;background:#2a3450" title="Awake"></div>
+      </div>
+      <div class="sl-legend"><span>■ Deep 1h45m</span><span>■ Light 3h50m</span><span>■ REM 1h25m</span><span>■ Awake 55m</span></div>
+      <p style="margin-top:8px">Sleep score: <b style="color:var(--theme)">78 / 100</b>. You went to bed at 1:20 AM again. The watch saw everything.</p></div>
+  </div>
+
+  <div id="tab-ai" style="display:none">
+    <div class="card"><b>Voice Assistant</b><p>Flash a persona, then run commands: timers, weather, calendar, smart home shortcuts.</p></div>
+    <div class="card">
+      <input class="f" id="sysprompt" placeholder="Assistant persona (e.g. sarcastic mechanic)">
+      <button class="go" onclick="flashAI()">Flash persona</button>
+    </div>
+    <div class="card">
+      <input class="f" id="ai-input" placeholder='Try: "timer 10 min" / "weather" / "calendar" / "lights off"' onkeydown="if(event.key==='Enter')sendAI()">
+      <button class="go" onclick="sendAI()">Run command</button>
+    </div>
+    <div class="card"><b>Session</b><div id="ai-thread" style="margin-top:10px"></div></div>
+  </div>
+
+  <div id="tab-msgs" style="display:none">
+    <div class="card"><b>Notifications & Quick Replies</b><p>Push alerts to the watch. Answer with quick replies, dictation, or the mini keyboard.</p></div>
+    <div class="card">
+      <input class="f" id="msg-from" placeholder="App / sender (e.g. Mom, Gmail, Uber)">
+      <input class="f" id="msg-text" placeholder="Notification text (e.g. Your table is ready)">
+      <button class="go" onclick="pushMsg()">Push to watch</button>
+    </div>
+    <div class="card"><b>Thread: Austin</b><div id="msg-thread" style="margin-top:10px"></div>
+      <div class="w-input" style="margin-top:10px">
+        <input id="msg-input" placeholder="Reply as Austin (mini keyboard)..." onkeydown="if(event.key==='Enter')sendMsg()">
+        <button onclick="sendMsg()">Send</button>
+      </div></div>
+  </div>
+
+  <div id="tab-calls" style="display:none">
+    <div class="card"><b>Calls</b><p>Ring the watch. Answer, mute, or drop it from the wrist.</p></div>
+    <div class="card">
+      <input class="f" id="call-from" placeholder="Caller name (e.g. Dad)">
+      <button class="go" onclick="pushCall()">📞 Ring the watch</button>
+    </div>
+  </div>
+
+  <div id="tab-wallet" style="display:none">
+    <div class="card"><b>NFC Wallet</b><p>Contactless payments from the wrist. Select a card, then double-press the crown. Watch face goes into pay mode at the terminal.</p></div>
+    <div class="card">
+      <div class="card-row sel" onclick="selCard(0,this)"><span style="font-size:18px">💳</span> Octopus Black — •••• 4242 <span class="pill">default</span></div>
+      <div class="card-row" onclick="selCard(1,this)"><span style="font-size:18px">🚇</span> Transit Pass — Metrorail</div>
+      <div class="card-row" onclick="selCard(2,this)"><span style="font-size:18px">🎟️</span> Boarding Pass — AA 1142</div>
+      <button class="go" style="margin-top:10px" onclick="payTerminal()">📶 Tap terminal</button>
+      <p id="pay-res" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div id="tab-nav" style="display:none">
+    <div class="card"><b>Haptic Turn-by-Turn</b><p>Silent wrist pulses: one buzz = right, two buzzes = left. No screen-staring.</p></div>
+    <div class="card">
+      <input class="f" id="nav-dest" placeholder="Destination (e.g. Taqueria El Pulpo)">
+      <button class="go" onclick="startNav()">Start navigation</button>
+    </div>
+    <div class="card"><b>Route</b><div id="nav-steps" style="font-size:12px;color:var(--dim);margin-top:8px">Idle.</div></div>
+  </div>
+
+  <div id="tab-media" style="display:none">
+    <div class="card"><b>Offline Media</b><p>Sync playlists straight to watch storage. Phone-free playback over Bluetooth headphones.</p></div>
+    <div class="card">
+      <b style="font-size:12px">Playlist: "Wrist Heavy"</b><span class="pill" id="sync-count">0 synced</span>
+      <div style="margin-top:10px">
+        <div class="track">🎵 Kraken Bass <button class="sync" style="background:var(--card);border:1px solid #2a3450;color:var(--dim);border-radius:8px;font-size:11px;padding:4px 10px;cursor:pointer" onclick="syncTrack(this,'Kraken Bass','Octopus Dub')">Sync</button></div>
+        <div class="track">🎵 Deep Sea Static <button class="sync" style="background:var(--card);border:1px solid #2a3450;color:var(--dim);border-radius:8px;font-size:11px;padding:4px 10px;cursor:pointer" onclick="syncTrack(this,'Deep Sea Static','Benthic')">Sync</button></div>
+        <div class="track">🎵 Ink Flow <button class="sync" style="background:var(--card);border:1px solid #2a3450;color:var(--dim);border-radius:8px;font-size:11px;padding:4px 10px;cursor:pointer" onclick="syncTrack(this,'Ink Flow','Cephalopod Trio')">Sync</button></div>
+      </div>
+      <p id="storage" style="margin-top:8px">Watch storage: 1.2 GB free</p>
+    </div>
+  </div>
+
+  <div id="tab-faces" style="display:none">
+    <div class="card"><b>Watch Face Customization</b><p>Pick an accent color and toggle modular complications. The face updates live.</p></div>
+    <div class="card">
+      <b style="font-size:12px">Accent</b>
+      <div class="swatches">
+        <div class="sw sel" style="background:#00e5a0" onclick="setTheme('#00e5a0',this)"></div>
+        <div class="sw" style="background:#4da3ff" onclick="setTheme('#4da3ff',this)"></div>
+        <div class="sw" style="background:#ff4d6d" onclick="setTheme('#ff4d6d',this)"></div>
+        <div class="sw" style="background:#ffc857" onclick="setTheme('#ffc857',this)"></div>
+        <div class="sw" style="background:#b47aff" onclick="setTheme('#b47aff',this)"></div>
+      </div>
+      <b style="font-size:12px">Complications</b>
+      <div class="chk"><input type="checkbox" checked onchange="toggleComp('hr',this.checked)"> ❤️ Live heart rate</div>
+      <div class="chk"><input type="checkbox" checked onchange="toggleComp('battery',this.checked)"> 🔋 Battery</div>
+      <div class="chk"><input type="checkbox" checked onchange="toggleComp('date',this.checked)"> 📅 Date</div>
+      <div class="chk"><input type="checkbox" onchange="toggleComp('mods',this.checked)"> 🧩 Mod count</div>
+      <div class="chk"><input type="checkbox" onchange="toggleComp('steps',this.checked)"> 👣 Steps (legacy, why)</div>
+    </div>
+  </div>
+
+  <div id="tab-tactical" style="display:none">
+    <div class="card"><b>Tactical Core</b><p>Compass with sun/moon azimuth ring, HRV stress wave with adrenaline detection, haptic Morse metronome, modulated flashlight, and the companion link panel.</p></div>
+    <div class="card"><b>Compass</b>
+      <div style="font-size:12px;color:var(--dim);margin:4px 0">Heading <span id="t-head" style="color:var(--accent);font-weight:700">0° N</span></div>
+      <input class="f" id="t-lat" placeholder="Latitude (e.g. 29.7633)" value="29.7633">
+      <input class="f" id="t-lon" placeholder="Longitude (e.g. -95.3633)" value="-95.3633">
+      <div style="font-size:11px;color:var(--dim)" id="t-cel">—</div>
+      <button class="go" onclick="dropCrumb()">⬤ Drop breadcrumb</button>
+      <div style="font-size:11px;color:var(--accent);margin-top:6px" id="t-crumb">No drop pinned</div>
+    </div>
+    <div class="card"><b>HRV Stress Monitor</b>
+      <canvas id="stress-cv" style="width:100%;height:60px;background:#05080f;border-radius:10px;border:1px solid #2a3450;margin:8px 0"></canvas>
+      <div style="font-size:11px" id="t-stress">Stress — · HRV — ms</div>
+      <button class="go" style="background:var(--danger);color:#fff" onclick="armSOS()">⚠ Arm SOS beacon</button>
+      <div style="font-size:11px;color:var(--danger);margin-top:6px" id="t-sos"></div>
+    </div>
+    <div class="card"><b>Haptic Morse Metronome</b>
+      <input class="f" id="morse-text" placeholder="Message to pulse (default SOS)" maxlength="24">
+      <div style="display:flex;gap:6px">
+        <button class="go" style="background:var(--accent2);color:#04121f" onclick="startMetronome()">▶ Metronome</button>
+        <button class="go" style="background:var(--warn);color:#231a05" onclick="startMorse()">··· Morse</button>
+        <button class="go" style="background:var(--danger);color:#fff" onclick="stopPulse()">■</button>
+      </div>
+    </div>
+    <div class="card"><b>Flashlight</b>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="go" style="width:auto" onclick="setFlash('solid')">Solid</button>
+        <button class="go" style="width:auto;background:var(--accent2);color:#04121f" onclick="setFlash('strobe')">Strobe</button>
+        <button class="go" style="width:auto;background:var(--warn);color:#231a05" onclick="setFlash('sos')">SOS</button>
+        <button class="go" style="width:auto;background:#e8edf5;color:#0a0e14" onclick="setFlash('red')">Red NV</button>
+        <button class="go" style="width:auto;background:var(--danger);color:#fff" onclick="setFlash('off')">Off</button>
+      </div>
+    </div>
+    <div class="card"><b>Companion Link</b>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span id="dolphin" style="font-size:24px">🐬</span>
+        <span id="link-state" style="font-size:12px;color:var(--dim)">LINK: DOWN</span>
+      </div>
+      <input class="f" id="flipper-name" placeholder="Paired device name" value="Flipper">
+      <button class="go" style="background:var(--accent2);color:#04121f" onclick="toggleLink()">Connect / Disconnect</button>
+      <div id="key-list" style="margin-top:10px"></div>
+      <div class="log" id="serial-log" style="margin-top:8px">[serial] idle</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const S = {
+  view:'face', prev:'grid',
+  msgs:[{from:'Mom',text:'Did you eat?',me:false}],
+  ai:[{me:false,text:'Watch AI online. Timer, weather, calendar, smart home. Say the word.'}],
+  mods:[], call:null, sysprompt:'default', incMsg:0,
+  hr:72, spo2:98, temp:33.6, stress:31,
+  health:{hr:true,battery:true,date:true,mods:false,steps:false},
+  wallet:{sel:0,paying:false},
+  nav:{on:false,steps:[],idx:0},
+  media:{tracks:[],playing:null,pos:0,playingOn:false},
+  qr:['👍 OK','On my way','Call you back','No'],
+};
+
+const scr = () => document.getElementById('wscreen');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&','<':'<','>':'>','"':'"'}[c]));
+
+/* ---------------- RENDER WATCH ---------------- */
+function render(){
+  const el = scr();
+  let inner = '';
+  const nav = `<div class="watch-nav">
+    <button class="nav-btn" onclick="goView('face')">●</button>
+    <button class="nav-btn" onclick="goView('grid')">⊞</button>
+    <button class="nav-btn" onclick="goView('${S.prev==='grid'?'grid':S.prev}',true)">←</button>
+  </div>`;
+  if (S.call) {
+    inner = `<div class="watch-header">INCOMING CALL</div><div class="call">
+      <div class="avatar">👤</div><div style="font-size:14px">${esc(S.call)}</div>
+      <div class="status" id="call-t">00:00</div>
+      <div class="call-actions">
+        <button class="call-btn cb-mute" onclick="muteCall()">🔇</button>
+        <button class="call-btn cb-end" onclick="endCall()">✕</button>
+      </div></div>`;
+  } else if (S.wallet.paying) {
+    inner = `<div class="watch-header">HOLD NEAR READER</div><div class="watch-body" style="text-align:center">
+      <div style="font-size:34px;margin-top:24px">📶</div>
+      <div class="paypulse">${S.wallet.paying==='ok' ? '✔ Approved' : 'Waiting for terminal…'}</div>
+      <div class="wcard" style="text-align:left"><div class="brandname">${esc(S.wallet.cards[S.wallet.sel].n)}</div><div class="num">•••• ${esc(S.wallet.cards[S.wallet.sel].num)}</div></div>
+    </div>`;
+  } else if (S.view==='face') {
+    const t=new Date();
+    inner = `<div class="face">
+      <div class="time">${String(t.getHours()%12||12).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}</div>
+      ${S.health.date?`<div class="date">${t.toDateString()}</div>`:''}
+      <div class="comps">
+        ${S.incMsg?`<div class="comp">💬 <b>${S.incMsg}</b> unread</div>`:''}
+        ${S.health.hr?`<div class="comp">❤️ <b>${S.hr}</b> bpm</div>`:''}
+        ${S.health.battery?`<div class="comp">🔋 <b>84%</b></div>`:''}
+        ${S.health.mods?`<div class="comp">🧩 <b>${S.mods.length}</b></div>`:''}
+        ${S.health.steps?`<div class="comp">👣 <b>4,318</b></div>`:''}
+      </div></div>`;
+  } else if (S.view==='grid') {
+    const tiles = [
+      ['msgs','💬','Texts'],['phone','📞','Call'],['aiw','🤖','AI'],
+      ['healthw','❤️','Vitals'],['notifw','🔔','Alerts'],['walletw','💳','Wallet'],
+      ['navw','🧭','Nav'],['musicw','🎧','Music'],['asstw','🎙️','Voice'],
+      ['compassw','🧭','Compass'],['toolsw','🛠','Tools'],['flipperw','🐬','Link'],
+    ].map(([v,g,l])=>`<div class="app-icon" style="position:relative" onclick="goView('${v}')"><span class="glyph">${g}</span><span>${l}</span>${v==='msgs'&&S.incMsg?`<span class="badge">${S.incMsg}</span>`:''}</div>`).join('');
+    const modTiles = S.mods.map((m,i)=>`<div class="app-icon" onclick="runMod(${i})"><span class="glyph">${m.icon}</span><span>${esc(m.name)}</span></div>`).join('');
+    inner = `<div class="watch-header">Apps</div><div class="watch-body"><div class="grid">${tiles}${modTiles}</div></div>`;
+  } else if (S.view==='msgs') {
+    inner = `<div class="watch-header">Messages</div><div class="watch-body">
+      ${S.msgs.map(m=>`<div class="w-msg ${m.me?'me':''}"><div class="from">${m.me?'Me':esc(m.from)}</div>${esc(m.text)}</div>`).join('')}
+      <div class="qreplies">${S.qr.map(q=>`<span class="qreply" onclick="quickReply('${q.replace(/'/g,"\\'")}')">${q}</span>`).join('')}</div>
+      <div class="w-input"><input id="w-msg-in" placeholder="Dictate or type…" onkeydown="if(event.key==='Enter')sendMsg(true)"><button onclick="sendMsg(true)">➤</button></div>
+    </div>`;
+  } else if (S.view==='aiw') {
+    inner = `<div class="watch-header">AI Chat</div><div class="watch-body">
+      ${S.ai.map(m=>`<div class="w-msg ${m.me?'me':''}"><div class="from">${m.me?'Me':'AI'}</div>${esc(m.text)}</div>`).join('')}
+      <div class="w-input"><input id="w-ai-in" placeholder="Ask…" onkeydown="if(event.key==='Enter')sendAI(true)"><button onclick="sendAI(true)">➤</button></div>
+    </div>`;
+  } else if (S.view==='phoneapp') {
+    inner = `<div class="watch-header">Dialer</div><div class="watch-body">
+      <input class="f" id="dial" placeholder="Number or name" style="margin-top:14px;font-size:11px">
+      <button class="w-btn" style="margin-top:8px;width:100%" onclick="startCallFromDial()">Call</button></div>`;
+  } else if (S.view==='healthw') {
+    inner = `<div class="watch-header">Vitals</div><div class="watch-body">
+      <div class="hr-big"><div class="val" id="w-hr">${S.hr}</div><div class="lab">BPM · continuous</div></div>
+      <canvas id="ecg"></canvas>
+      <div class="hrow"><span>SpO2</span><span class="v">${S.spo2}%</span></div>
+      <div class="hrow"><span>Skin temp</span><span class="v">${S.temp}°C</span></div>
+      <div class="hrow"><span>Stress</span><span class="v">${S.stress}</span></div>
+      <div class="hrow"><span>Sleep score</span><span class="v">78</span></div>
+      <button class="w-btn" style="margin-top:8px;width:100%" onclick="runECG()">Take ECG</button>
+    </div>`;
+  } else if (S.view==='notifw') {
+    inner = `<div class="watch-header">Notifications</div><div class="watch-body">
+      ${S.msgs.length?S.msgs.slice(-6).map(m=>`<div class="w-msg"><div class="from">${esc(m.from)}</div>${esc(m.text)}</div>`).join(''):'<div style="text-align:center;color:var(--dim);font-size:10px;margin-top:20px">Quiet. Suspiciously quiet.</div>'}
+    </div>`;
+  } else if (S.view==='walletw') {
+    inner = `<div class="watch-header">Wallet</div><div class="watch-body">
+      ${S.wallet.cards.map((c,i)=>`<div class="wcard" style="${i===S.wallet.sel?'border-color:var(--accent2)':''}" onclick="selCardWatch(${i})"><div class="brandname">${esc(c.n)}</div><div class="num">•••• ${esc(c.num)}</div></div>`).join('')}
+      <button class="w-btn" style="margin-top:8px;width:100%" onclick="payTerminal()">Double-press to pay</button>
+    </div>`;
+  } else if (S.view==='navw') {
+    const n=S.nav;
+    if(!n.on){ inner = `<div class="watch-header">Navigation</div><div class="watch-body" style="text-align:center;color:var(--dim);font-size:11px;margin-top:24px">No active route.</div>`; }
+    else {
+      const st=n.steps[n.idx];
+      inner = `<div class="watch-header">Navigating</div><div class="watch-body">
+        <div class="navstep" style="margin-top:8px">${esc(n.dest)}</div>
+        <div class="navbig">${st.dir==='left'?'⬅️':'➡️'}</div>
+        <div class="navdist">${st.dist}</div>
+        <div class="navstep">${esc(st.text)}</div>
+        <div class="haptic">Haptics:
+          ${st.dir==='left'?'<span class="pulse p1"></span><span class="pulse p2"></span>':'<span class="pulse p1"></span>'}
+          <div style="font-size:9px;margin-top:3px">${st.dir==='left'?'double pulse = turn left':'single pulse = turn right'}</div>
+        </div>
+        <button class="w-btn" style="margin-top:10px;width:100%" onclick="advanceNav()">Next turn (or just wait)</button>
+      </div>`;
+      setTimeout(()=>{ if(S.view==='navw'&&S.nav.on){const p1=document.querySelector('.p1');if(p1){p1.classList.add('on');setTimeout(()=>{p1.classList.remove('on');if(st.dir==='left'){const p2=document.querySelector('.p2');p2.classList.add('on');setTimeout(()=>p2.classList.remove('on'),250);}},250);}}},800);
+    }
+  } else if (S.view==='musicw') {
+    const m=S.media;
+    if(!m.playing){ inner = `<div class="watch-header">Music</div><div class="watch-body" style="text-align:center;color:var(--dim);font-size:11px;margin-top:24px">No synced tracks.<br>Sync from the phone panel.</div>`; }
+    else {
+      inner = `<div class="watch-header">Now Playing</div><div class="watch-body">
+        <div class="np"><div class="art">🎧</div>
+          <div class="t">${esc(m.playing.t)}</div><div class="a">${esc(m.playing.a)}</div>
+          <div class="progress"><div style="width:${m.pos}%"></div></div>
+          <div class="m-controls"><span onclick="prevTrack()">⏮</span><span onclick="togglePlay()">${m.playingOn?'⏸':'▶️'}</span><span onclick="nextTrack()">⏭</span></div>
+          <div style="font-size:9px;color:var(--dim);margin-top:8px">Offline · Bluetooth headphones</div>
+        </div></div>`;
+    }
+  } else if (S.view==='asstw') {
+    inner = `<div class="watch-header">Voice Assistant</div><div class="asst">
+      <div class="orb">🎙️</div>
+      <div class="resp" id="asst-res">Listening… try "timer 10 min", "weather", "calendar", "lights off".</div>
+      <div class="w-input" style="width:100%"><input id="w-asst-in" placeholder="Speak or type" onkeydown="if(event.key==='Enter')watchAssistant()"><button onclick="watchAssistant()">➤</button></div>
+    </div>`;
+  } else if (S.view==='compassw') {
+    inner = `<div class="watch-header">Compass</div><div class="watch-body" style="text-align:center">
+      <canvas id="compass-cv" style="width:150px;height:150px;margin-top:4px"></canvas>
+      <div style="font-size:18px;color:var(--accent)" id="w-head">${Math.round(T.az)}° ${cardinal(T.az)}</div>
+      <div style="font-size:9px;color:var(--warn);margin-top:4px">☀ ${Math.round(T.sun)}° · 🌙 ${Math.round(T.moon)}°</div>
+      <div style="font-size:9px;color:var(--dim);margin-top:4px" id="w-crumb">no crumb</div>
+    </div>`;
+  } else if (S.view==='toolsw') {
+    inner = `<div class="watch-header">Tools</div><div class="watch-body">
+      <button class="w-btn" style="width:100%;margin-top:6px" onclick="startMetronome()">▶ Metronome</button>
+      <button class="w-btn" style="width:100%;margin-top:6px;background:var(--accent2);color:#04121f" onclick="startMorse()">··· Morse</button>
+      <button class="w-btn" style="width:100%;margin-top:6px;background:var(--danger);color:#fff" onclick="stopPulse()">■ Stop</button>
+      <div style="display:flex;gap:4px;margin-top:8px">
+        <button class="w-btn" style="flex:1" onclick="setFlash('solid')">Solid</button>
+        <button class="w-btn" style="flex:1;background:var(--accent2);color:#04121f" onclick="setFlash('strobe')">Strobe</button>
+      </div>
+      <div style="display:flex;gap:4px;margin-top:4px">
+        <button class="w-btn" style="flex:1;background:var(--warn);color:#231a05" onclick="setFlash('sos')">SOS</button>
+        <button class="w-btn" style="flex:1;background:#e8edf5;color:#0a0e14" onclick="setFlash('red')">Red</button>
+      </div>
+      <button class="w-btn" style="width:100%;margin-top:4px;background:var(--danger);color:#fff" onclick="setFlash('off')">Light off</button>
+    </div>`;
+  } else if (S.view==='flipperw') {
+    inner = `<div class="watch-header">Companion</div><div class="watch-body" style="text-align:center">
+      <div style="font-size:34px;margin-top:8px">${T.link?'🐬':'🐬'}</div>
+      <div style="font-size:10px;color:${T.link?'var(--accent)':'var(--dim)'}">${T.link?'LINK: UP':'LINK: DOWN'}</div>
+      ${T.link?T.keys.map((k,i)=>`<button class="w-btn" style="width:100%;margin-top:6px" onclick="fireKey(${i})">${k.g} ${k.label}</button>`).join(''):''}
+    </div>`;
+  } else if (S.view==='modout') {
+    inner = `<div class="watch-header">${esc(S.modOut.title)}</div><div class="watch-body">
+      <div class="w-msg">${esc(S.modOut.body)}</div>
+      <button class="w-btn" style="margin-top:8px;width:100%" onclick="goView('grid')">Back to apps</button></div>`;
+  }
+  el.innerHTML = inner + nav;
+  if (S.view==='healthw') drawECG('ecg');
+}
+function goView(v,back){
+  if(!back) S.prev = (S.view==='grid') ? 'grid' : S.view;
+  if(back && v==='face') { S.view='face'; render(); return; }
+  if(v==='msgs') S.incMsg=0;
+  S.view=v; render();
+}
+
+/* ---------------- HEALTH ---------------- */
+function tickVitals(){
+  S.hr = Math.max(55, Math.min(110, S.hr + Math.round((Math.random()-0.5)*6)));
+  S.spo2 = 96 + Math.round(Math.random()*3);
+  S.temp = (33.4 + Math.random()*0.5).toFixed(1);
+  S.stress = Math.max(10, Math.min(90, S.stress + Math.round((Math.random()-0.5)*8)));
+  document.getElementById('p-hr').textContent=S.hr;
+  document.getElementById('p-spo2').textContent=S.spo2+'%';
+  document.getElementById('p-temp').textContent=S.temp+'°C';
+  document.getElementById('p-stress').textContent=S.stress;
+  const whr=document.getElementById('w-hr'); if(whr) whr.textContent=S.hr;
+}
+function drawECG(id){
+  const c=document.getElementById(id); if(!c) return;
+  const w=c.width=c.offsetWidth||220, h=c.height=c.offsetHeight||52;
+  const ctx=c.getContext('2d'); ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle='#ff4d6d'; ctx.lineWidth=1.5; ctx.beginPath();
+  for(let x=0;x<w;x++){
+    const p=(x%100)/100;
+    let y=h*0.6;
+    if(p>0.1&&p<0.18) y-=Math.sin((p-0.1)/0.08*Math.PI)*h*0.3;   // P wave
+    if(p>0.24&&p<0.28) y+=h*0.25;                                  // Q
+    if(p>0.28&&p<0.33) y-=Math.sin((p-0.28)/0.05*Math.PI)*h*0.55; // R
+    if(p>0.33&&p<0.37) y+=h*0.2;                                  // S
+    if(p>0.5&&p<0.62) y-=Math.sin((p-0.5)/0.12*Math.PI)*h*0.12;   // T
+    ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+}
+let ecgTimer=null;
+function runECG(){
+  flog('[ecg] 30s reading started');
+  drawECG('ecg-big');
+  let t=0;
+  clearInterval(ecgTimer);
+  ecgTimer=setInterval(()=>{
+    t+=5; document.getElementById('ecg-res').textContent=`Recording… ${t}s / 30s`;
+    if(t>=30){
+      clearInterval(ecgTimer);
+      document.getElementById('ecg-res').innerHTML='Result: <b style="color:var(--theme)">Sinus rhythm, normal</b>. 72 bpm, no anomalies detected.';
+      flog('[ecg] complete: sinus rhythm OK');
+    }
+  },300);
+}
+
+/* ---------------- MESSAGES / NOTIFS ---------------- */
+function pushMsg(){
+  const from=document.getElementById('msg-from').value.trim()||'Unknown';
+  const text=document.getElementById('msg-text').value.trim()||'You up?';
+  S.msgs.push({from,text,me:false}); S.incMsg++;
+  if(S.view!=='msgs'&&S.view!=='grid'&&S.view!=='notifw') S.view='face';
+  flog(`[notify] ${from}: ${text}`);
+  renderThreads(); render();
+}
+function sendMsg(fromWatch){
+  const id=fromWatch?'w-msg-in':'msg-input';
+  const inp=document.getElementById(id); const v=inp.value.trim(); if(!v) return;
+  S.msgs.push({from:'Austin',text:v,me:true}); inp.value='';
+  renderThreads(); render();
+  setTimeout(()=>{S.msgs.push({from:'Mom',text:'ok 👍',me:false});renderThreads();if(S.view==='msgs')render();},900);
+}
+function quickReply(q){ S.msgs.push({from:'Austin',text:q+' (quick reply)',me:true}); renderThreads(); render(); }
+function renderThreads(){
+  document.getElementById('msg-thread').innerHTML=
+    S.msgs.map(m=>`<div class="msg-row ${m.me?'sent':''}"><div class="bub">${esc(m.text)}</div></div>`).join('');
+}
+
+/* ---------------- AI / ASSISTANT ---------------- */
+function flashAI(){
+  const p=document.getElementById('sysprompt').value.trim();
+  S.sysprompt=p||'default';
+  S.ai.push({me:false,text:`Persona re-flashed. Operating as: "${S.sysprompt}".`});
+  flog(`[ai] persona flashed: ${S.sysprompt}`);
+  renderAI(); render();
+}
+function aiReply(q){ return aiCommand(q); }
+function aiCommand(q){
+  const l=q.toLowerCase();
+  if(l.includes('timer')){
+    const m=l.match(/(\d+)\s*(min|sec)/); const n=m?m[1]:'5'; const u=m&&m[2].startsWith('s')?'seconds':'minutes';
+    return `⏱️ Timer set: ${n} ${u}. The wrist will buzz when it's done. Unlike your motivation.`;
+  }
+  if(l.includes('weather')) return '🌤️ 74°F, clear. Same as yesterday. Go outside anyway.';
+  if(l.includes('calendar')) return '📅 Today: 2 events. 14:00 "sync with the mothership", 19:30 "pretend to gym".';
+  if(l.includes('light')) return '💡 Smart home: living room lights '+(l.includes('off')?'off. Darkness secured.':'on. Bathe in it.');
+  if(l.includes('door')) return '🚪 Front door locked. The octopus keeps the keys now.';
+  return `Under "${S.sysprompt}" protocol: give me a module to flash and I'll run it.`;
+}
+function sendAI(fromWatch){
+  const id=fromWatch?'w-ai-in':'ai-input';
+  const inp=document.getElementById(id); const v=inp.value.trim(); if(!v) return;
+  S.ai.push({me:true,text:v}); inp.value='';
+  setTimeout(()=>{S.ai.push({me:false,text:aiCommand(v)});renderAI();if(S.view==='aiw')render();},600);
+  renderAI(); render();
+}
+function watchAssistant(){
+  const inp=document.getElementById('w-asst-in'); const v=inp.value.trim(); if(!v) return;
+  document.getElementById('asst-res').textContent='…';
+  setTimeout(()=>{const el=document.getElementById('asst-res'); if(el) el.textContent=aiCommand(v); flog(`[assistant] "${v}" handled`);},600);
+  inp.value='';
+}
+function renderAI(){
+  document.getElementById('ai-thread').innerHTML=
+    S.ai.map(m=>`<div class="msg-row ${m.me?'sent':''}"><div class="bub">${esc(m.text)}</div></div>`).join('');
+}
+
+/* ---------------- CALLS ---------------- */
+let callTimer=null;
+function pushCall(){ S.call=document.getElementById('call-from').value.trim()||'Unknown'; S.callStart=Date.now(); flog(`[call] incoming: ${S.call}`); render(); startTimer(); }
+function startCallFromDial(){ const v=document.getElementById('dial').value.trim(); S.call=v||'Unknown'; S.callStart=Date.now(); startTimer(); render(); }
+function startTimer(){
+  clearInterval(callTimer);
+  callTimer=setInterval(()=>{
+    const el=document.getElementById('call-t'); if(!el){clearInterval(callTimer);return;}
+    const s=Math.floor((Date.now()-S.callStart)/1000);
+    el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  },500);
+}
+function muteCall(){ flog('[call] mic muted'); }
+function endCall(){ clearInterval(callTimer); flog(`[call] ended: ${S.call}`); S.call=null; S.view='face'; render(); }
+
+/* ---------------- WALLET ---------------- */
+S.wallet.cards=[{n:'Octopus Black',num:'4242'},{n:'Transit Pass',num:'M-88'},{n:'Boarding Pass AA 1142',num:'BP7'}];
+function selCard(i,el){
+  S.wallet.sel=i;
+  document.querySelectorAll('#tab-wallet .card-row').forEach(r=>r.classList.remove('sel'));
+  el.classList.add('sel'); flog(`[wallet] default card: ${S.wallet.cards[i].n}`); render();
+}
+function selCardWatch(i){ S.wallet.sel=i; render(); }
+function payTerminal(){
+  S.wallet.paying='wait'; render();
+  const c=S.wallet.cards[S.wallet.sel];
+  document.getElementById('pay-res').textContent='Waiting for terminal…';
+  setTimeout(()=>{
+    S.wallet.paying='ok'; render();
+    document.getElementById('pay-res').innerHTML=`<b style="color:var(--theme)">✔ Approved</b> — ${esc(c.n)} charged (or gate opened / boarding pass scanned).`;
+    flog(`[nfc] transaction approved via ${c.n}`);
+    setTimeout(()=>{S.wallet.paying=false;render();},2200);
+  },1400);
+}
+
+/* ---------------- NAV ---------------- */
+function startNav(){
+  const dest=document.getElementById('nav-dest').value.trim()||'Destination';
+  S.nav={on:true,dest,steps:[
+    {dir:'right',dist:'300 ft',text:'Turn right onto 5th St'},
+    {dir:'left',dist:'0.4 mi',text:'Turn left onto Pulpo Ave'},
+    {dir:'right',dist:'600 ft',text:'Turn right, destination ahead'},
+  ],idx:0};
+  renderNavSteps(); goView('navw');
+  flog(`[nav] routing to ${dest} · haptic guidance on`);
+}
+function advanceNav(){
+  S.nav.idx++;
+  if(S.nav.idx>=S.nav.steps.length){
+    S.nav.on=false; flog('[nav] you have arrived'); goView('face');
+  } else render();
+}
+function renderNavSteps(){
+  const el=document.getElementById('nav-steps');
+  el.innerHTML=S.nav.on? S.nav.steps.map((s,i)=>
+    `<div style="padding:3px 0;${i===S.nav.idx?'color:var(--theme);font-weight:600':''}">${s.dir==='left'?'⬅':'➡'} ${esc(s.text)} <span style="color:#556">(${s.dist})</span></div>`
+  ).join('') : 'Idle.';
+}
+
+/* ---------------- MEDIA ---------------- */
+function syncTrack(btn,t,a){
+  if(!S.media.tracks.some(x=>x.t===t)){ S.media.tracks.push({t,a}); }
+  btn.textContent='✔ Synced'; btn.style.color='var(--theme)'; btn.style.borderColor='var(--theme)'; btn.disabled=true;
+  if(!S.media.playing) S.media.playing={t,a};
+  document.getElementById('sync-count').textContent=S.media.tracks.length+' synced';
+  document.getElementById('storage').textContent='Watch storage: '+(1.2-S.media.tracks.length*0.28).toFixed(1)+' GB free';
+  flog(`[media] synced "${t}" to watch storage`);
+  if(S.view==='musicw') render();
+}
+function togglePlay(){ S.media.playingOn=!S.media.playingOn; flog(`[media] ${S.media.playingOn?'play':'pause'}: ${S.media.playing.t}`); render(); }
+function nextTrack(){ cycle(1); } function prevTrack(){ cycle(-1); }
+function cycle(d){
+  const i=S.media.tracks.findIndex(x=>x.t===S.media.playing.t);
+  S.media.playing=S.media.tracks[(i+d+S.media.tracks.length)%S.media.tracks.length]||S.media.playing;
+  S.media.pos=0; render();
+}
+setInterval(()=>{ if(S.media.playingOn){ S.media.pos=(S.media.pos+2)%100; if(S.view==='musicw')render(); } },700);
+
+/* ---------------- FACES ---------------- */
+function setTheme(c,el){
+  document.documentElement.style.setProperty('--theme',c);
+  document.querySelectorAll('.sw').forEach(s=>s.classList.remove('sel'));
+  el.classList.add('sel'); flog(`[face] accent set ${c}`); render();
+}
+function toggleComp(k,on){ S.health[k]=on; render(); }
+
+/* ---------------- MODS ---------------- */
+function installMod(){
+  const name=document.getElementById('m-name').value.trim();
+  const icon=document.getElementById('m-icon').value.trim()||'🧩';
+  const type=document.getElementById('m-type').value;
+  const payload=document.getElementById('m-payload').value.trim()||'no payload';
+  if(!name){ flog('[err] module needs a name'); return; }
+  S.mods.push({name,icon,type,payload});
+  document.getElementById('m-name').value=''; document.getElementById('m-icon').value=''; document.getElementById('m-payload').value='';
+  flog(`[flash] injected "${name}" (${type}) @0x${(0x8000+S.mods.length*256).toString(16)} — OK`);
+  renderMods(); render();
+}
+function removeMod(i){ flog(`[flash] purged "${S.mods[i].name}"`); S.mods.splice(i,1); renderMods(); render(); }
+function runMod(i){
+  const m=S.mods[i]; flog(`[exec] ${m.name}`);
+  if(m.type==='info'){ S.modOut={title:m.name,body:m.payload}; goView('modout'); }
+  else if(m.type==='action'){ S.modOut={title:m.name,body:'▶ executed: '+m.payload}; goView('modout'); }
+  else { S.ai.push({me:true,text:m.payload}); setTimeout(()=>{S.ai.push({me:false,text:aiCommand(m.payload)});renderAI();},600); renderAI(); goView('aiw'); }
+}
+function renderMods(){
+  document.getElementById('mod-list').innerHTML = S.mods.length
+    ? S.mods.map((m,i)=>`<div class="mod-item"><span class="ic">${m.icon}</span><span>${esc(m.name)}</span><span class="pill">${m.type}</span><button onclick="removeMod(${i})">purge</button></div>`).join('')
+    : '<span style="color:var(--dim);font-size:12px">No mods yet. Firmware is stock and boring.</span>';
+}
+function flog(s){
+  const el=document.getElementById('flashlog');
+  if(!el) return; el.innerHTML+=`<br>${s}`; el.scrollTop=el.scrollHeight;
+}
+/* ---------------- TACTICAL ---------------- */
+const T = {
+  az: 0, sun: 0, moon: 0, wave: [], link: false,
+  crumb: null, pulseTimer: null, light: 'off', sosArmed: false,
+  keys: [
+    {g:'📡', label:'Garage Remote', cmd:'subghz tx_from_file /ext/subghz/Garage.sub'},
+    {g:'💳', label:'Entry Badge', cmd:'nfc emulate /ext/nfc/Entry.nfc'},
+    {g:'📺', label:'TV Remote', cmd:'ir send /ext/infrared/TV.ir'},
+  ],
+};
+function cardinal(a){ const d=['N','NE','E','SE','S','SW','W','NW']; return d[Math.round(((a%360)+360)%360/45)%8]; }
+function tickTactical(){
+  T.az = (T.az + (Math.random()-0.4)*6 + 360) % 360;
+  const lat = parseFloat(document.getElementById('t-lat').value)||29.7633;
+  const lon = parseFloat(document.getElementById('t-lon').value)||-95.3633;
+  const n = Date.now()/86400000 + 2440587.5 - 2451545.0;
+  // sun azimuth (NOAA low precision)
+  const l = (280.460 + 0.9856474*n) % 360;
+  const g = (357.528 + 0.9856003*n) * Math.PI/180;
+  const lam = (l + 1.915*Math.sin(g) + 0.020*Math.sin(2*g)) * Math.PI/180;
+  const eps = 23.439 * Math.PI/180;
+  const dec = Math.asin(Math.sin(eps)*Math.sin(lam));
+  const ra = Math.atan2(Math.cos(eps)*Math.sin(lam), Math.cos(lam));
+  const gmst = (18.697374556 + 24.06570982441908*(n%1)) * 15;
+  const latR = lat*Math.PI/180;
+  let h = (gmst + lon)*Math.PI/180 - ra;
+  while (h > Math.PI) h -= 2*Math.PI; while (h < -Math.PI) h += 2*Math.PI;
+  const alt = Math.asin(Math.sin(dec)*Math.sin(latR)+Math.cos(dec)*Math.cos(latR)*Math.cos(h));
+  let az = Math.acos(Math.max(-1,Math.min(1,(Math.sin(dec)-Math.sin(alt)*Math.sin(latR))/(Math.cos(alt)*Math.cos(latR)))));
+  T.sun = (Math.sin(h) > 0 ? 360 - az*180/Math.PI : az*180/Math.PI);
+  // moon azimuth: low precision elements
+  const d2 = n;
+  const ml = (218.316 + 13.176396*d2) % 360 * Math.PI/180;
+  const mm = (134.963 + 13.064993*d2) % 360 * Math.PI/180;
+  const mf = (93.272 + 13.229350*d2) % 360 * Math.PI/180;
+  const mLambda = ml + 6.289*Math.sin(mm)*Math.PI/180;
+  const mBeta = 5.128*Math.sin(mf)*Math.PI/180;
+  const mDec = Math.asin(Math.sin(mBeta)*Math.cos(eps)+Math.cos(mBeta)*Math.sin(eps)*Math.sin(mLambda));
+  const mRa = Math.atan2(Math.sin(mLambda)*Math.cos(eps)-Math.tan(mBeta)*Math.sin(eps), Math.cos(mLambda));
+  let mh = (gmst + lon)*Math.PI/180 - mRa;
+  while (mh > Math.PI) mh -= 2*Math.PI; while (mh < -Math.PI) mh += 2*Math.PI;
+  const mAlt = Math.asin(Math.sin(mDec)*Math.sin(latR)+Math.cos(mDec)*Math.cos(latR)*Math.cos(mh));
+  let maz = Math.acos(Math.max(-1,Math.min(1,(Math.sin(mDec)-Math.sin(mAlt)*Math.sin(latR))/(Math.cos(mAlt)*Math.cos(latR)))));
+  T.moon = (Math.sin(mh) > 0 ? 360 - maz*180/Math.PI : maz*180/Math.PI);
+  // stress wave
+  const stress = 30 + Math.round(Math.random()*20 + (S.hr-70)/3);
+  T.wave = (T.wave.concat(stress)).slice(-40);
+  const cel = document.getElementById('t-head');
+  if (cel) cel.textContent = Math.round(T.az)+'° '+cardinal(T.az);
+  const cel2 = document.getElementById('t-cel');
+  if (cel2) cel2.textContent = `☀ sun az ${Math.round(T.sun)}° · 🌙 moon az ${Math.round(T.moon)}°`;
+  const cel3 = document.getElementById('t-stress');
+  if (cel3) cel3.textContent = `Stress ${stress} · HRV ${50-stress+20} ms${stress>70?' · ⚠ ADRENALINE EVENT':''}`;
+  drawCompass(); drawStress();
+  const wh = document.getElementById('w-head');
+  if (wh) wh.textContent = Math.round(T.az)+'° '+cardinal(T.az);
+}
+function drawCompass(){
+  const c = document.getElementById('compass-cv'); if (!c) return;
+  const w = c.width = c.offsetWidth||150, h = c.height = c.offsetHeight||150;
+  const ctx = c.getContext('2d'); ctx.clearRect(0,0,w,h);
+  const cx=w/2, cy=h/2, r=Math.min(w,h)/2-4;
+  ctx.strokeStyle='#1a2234'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r,0,7); ctx.stroke();
+  ctx.strokeStyle='#232d45'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,r*0.85,0,7); ctx.stroke();
+  for (let i=0;i<24;i++){
+    const a=(i*15 - T.az)*Math.PI/180;
+    const long = i%6===0;
+    ctx.strokeStyle = long?'#00e5a0':'#2a3450';
+    ctx.lineWidth = long?2:1;
+    ctx.beginPath();
+    ctx.moveTo(cx+(long?r*0.88:r*0.94)*Math.sin(a), cy-(long?r*0.88:r*0.94)*Math.cos(a));
+    ctx.lineTo(cx+r*Math.sin(a), cy-r*Math.cos(a));
+    ctx.stroke();
+  }
+  [[T.sun,'#ffc857'],[T.moon,'#4da3ff']].forEach(([az,col])=>{
+    const a=(az-T.az)*Math.PI/180;
+    ctx.fillStyle=col; ctx.beginPath();
+    ctx.arc(cx+r*0.85*Math.sin(a), cy-r*0.85*Math.cos(a), 4, 0, 7); ctx.fill();
+  });
+  ctx.strokeStyle='#00e5a0'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy-r*0.7); ctx.stroke();
+}
+function drawStress(){
+  const c = document.getElementById('stress-cv'); if (!c) return;
+  const w=c.width=c.offsetWidth||300, h=c.height=c.offsetHeight||60;
+  const ctx=c.getContext('2d'); ctx.clearRect(0,0,w,h);
+  if (T.wave.length<2) return;
+  ctx.strokeStyle='#00e5a0'; ctx.lineWidth=1.5; ctx.beginPath();
+  T.wave.forEach((v,i)=>{
+    const x=i/(39)*w, y=h-(v/100)*h;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+function dropCrumb(){
+  const lat=parseFloat(document.getElementById('t-lat').value)||29.7633;
+  const lon=parseFloat(document.getElementById('t-lon').value)||-95.3633;
+  T.crumb={lat,lon,t:Date.now()};
+  document.getElementById('t-crumb').textContent=`⬤ pinned ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  const wc=document.getElementById('w-crumb'); if(wc) wc.textContent='crumb pinned';
+  flog('[nav] breadcrumb dropped');
+}
+function startMetronome(){
+  stopPulse();
+  const beat = ()=>navigator.vibrate ? navigator.vibrate(30) : 0;
+  beat(); T.pulseTimer=setInterval(beat,500);
+  flog('[haptics] metronome 120bpm');
+}
+function startMorse(){
+  stopPulse();
+  const msg=(document.getElementById('morse-text').value.trim()||'SOS').toUpperCase();
+  const M={S:'...',O:'---'}; const DIT=70, DAH=210, GAP=700;
+  const pat=[];
+  for (const ch of msg){
+    const code = M[ch] || '.-'.charAt(0);
+    for (const s of code) pat.push(s==='.'?DIT:DAH, DIT);
+    pat.push(GAP);
+  }
+  const vibe = navigator.vibrate ? ()=>navigator.vibrate(pat) : ()=>{};
+  vibe(); T.pulseTimer=setInterval(vibe, pat.reduce((a,b)=>a+b,0)+1400);
+  flog(`[haptics] morse "${msg}"`);
+}
+function stopPulse(){ clearInterval(T.pulseTimer); T.pulseTimer=null; }
+let lightTimer=null;
+function setFlash(mode){
+  stopLight(); T.light=mode;
+  const watch=document.querySelector('.watch');
+  const on = col => { watch.style.boxShadow='0 0 60px '+col+', 0 20px 60px rgba(0,0,0,.7)'; watch.style.borderColor=col; };
+  const off = () => { watch.style.boxShadow='0 20px 60px rgba(0,0,0,.7), inset 0 0 30px rgba(0,0,0,.6)'; watch.style.borderColor='#232c42'; };
+  if(mode==='solid') on('#e8edf5');
+  else if(mode==='red') on('#ff2038');
+  else if(mode==='strobe'){ let t=false; lightTimer=setInterval(()=>{ t=!t; t?on('#e8edf5'):off(); },75); }
+  else if(mode==='sos'){ on('#e8edf5'); lightTimer=setInterval(()=>on('#e8edf5'),2000); }
+  else off();
+  flog('[light] '+mode);
+}
+function stopLight(){ clearInterval(lightTimer); lightTimer=null; }
+function armSOS(){
+  T.sosArmed=true;
+  const el=document.getElementById('t-sos'); let n=5;
+  el.textContent='⚠ SOS beacon armed — '+n+'s (tap again to cancel)';
+  const iv=setInterval(()=>{
+    if(!T.sosArmed){ clearInterval(iv); el.textContent=''; return; }
+    n--;
+    if(n<=0){ clearInterval(iv); el.textContent='📡 SOS beacon broadcast (waypoint + timestamp)'; flog('[sos] beacon broadcast'); T.sosArmed=false; }
+    else el.textContent='⚠ SOS beacon armed — '+n+'s (tap again to cancel)';
+  },1000);
+  el.onclick=()=>{ T.sosArmed=false; el.textContent=''; };
+}
+function toggleLink(){
+  T.link=!T.link;
+  const st=document.getElementById('link-state'), dol=document.getElementById('dolphin');
+  st.textContent = T.link?'LINK: UP':'LINK: DOWN';
+  st.style.color = T.link?'var(--accent)':'var(--dim)';
+  dol.style.filter = T.link?'none':'grayscale(1)';
+  slog(T.link?'[serial] connected · handshake OK':'[serial] disconnected');
+  document.getElementById('key-list').innerHTML = T.link
+    ? T.keys.map((k,i)=>`<div class="mod-item"><span class="ic">${k.g}</span><span>${k.label}</span><button onclick="fireKey(${i})">trigger</button></div>`).join('')
+    : '';
+  render();
+}
+function fireKey(i){
+  const k=T.keys[i];
+  slog('[exec] '+k.cmd);
+  setTimeout(()=>slog('[ack] 200 OK'),700);
+}
+function slog(s){
+  const el=document.getElementById('serial-log');
+  if(!el) return; el.innerHTML+='<br>'+s; el.scrollTop=el.scrollHeight;
+}
+
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+  ['mods','health','ai','msgs','calls','wallet','nav','media','faces','tactical'].forEach(x=>document.getElementById('tab-'+x).style.display=x===t?'block':'none');
+}
+
+renderMods(); renderThreads(); renderAI(); render();
+setInterval(tickVitals,2000);
+setInterval(tickTactical,1500);
+setInterval(()=>{ if(S.view==='face'&&!S.call&&!S.wallet.paying) render(); },10000);
+setInterval(()=>{ if(S.view==='healthw') drawECG('ecg'); },1500);
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
