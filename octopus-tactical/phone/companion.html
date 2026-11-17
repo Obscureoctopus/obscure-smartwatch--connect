@@ -29,18 +29,46 @@
   .log { font-family:monospace; font-size:11px; color:var(--accent); background:#05080f; border-radius:10px; padding:12px; max-height:140px; overflow:auto; line-height:1.7; }
   .mod-item { display:flex; align-items:center; gap:10px; background:#0d1320; border:1px solid #2a3450; border-radius:10px; padding:8px 10px; margin-bottom:6px; }
   .mod-item button { margin-left:auto; background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:6px; padding:2px 8px; }
+  .bar { height:8px; background:#0d1320; border-radius:6px; margin:10px 0 0; overflow:hidden; border:1px solid #2a3450; }
+  .bar > div { height:100%; width:0; background:var(--accent); }
+  button.go:disabled { opacity:.45; cursor:not-allowed; }
+  .legal-note { color:var(--dim); font-size:11px; line-height:1.5; margin:10px 0 0; }
+  .legal-note a { color:var(--accent2); }
+  .site-foot { margin:28px 0 8px; padding-top:16px; border-top:1px solid #232d45; display:flex; flex-wrap:wrap; gap:12px 18px; font-size:12px; }
+  .site-foot a { color:var(--dim); text-decoration:none; }
+  .site-foot a:hover { color:var(--accent); }
 </style>
 </head>
 <body>
 <div class="brand" style="display:flex;align-items:center;gap:10px">
   <div style="width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)"></div>
-  <h1>OCTOPUS OS</h1><span class="pill">watch 2.4.0</span>
+  <h1>OCTOPUS OS</h1><span class="pill">watch 2.5.0</span>
 </div>
-<p style="color:var(--dim);font-size:12px">Companion for the Waveshare S3 watch. Use <b>Chrome</b> on the phone. Watch advertises as InfiniTime. Chrome menu → <b>Add to Home screen</b> / Install app.</p>
+<p style="color:var(--dim);font-size:12px">Phone companion for the Waveshare S3 watch. Pair over Bluetooth, then the watch pulls firmware from this site over WiFi. Watch advertises as InfiniTime. Browser menu → <b>Add to Home screen</b>.</p>
+
+<p class="legal-note">Built for the Waveshare ESP32-S3-Touch-AMOLED-2.06. If a buy link appears here, it will be marked as a paid or affiliate link. Obscure Octopus LLC may earn a commission on those purchases. As an Amazon Associate I earn from qualifying purchases. <a href="disclosure.html">Affiliate disclosure</a>.</p>
 
 <div class="card">
   <button class="go" id="connect">Connect watch</button>
   <div id="st" style="margin-top:8px;font-size:12px;color:var(--dim)">disconnected</div>
+</div>
+
+<div class="card">
+  <b>Flash firmware</b>
+  <p>From this phone. Connect the watch, save WiFi, then update. The watch downloads Octopus OS 2.5.0 from this site and writes it itself.</p>
+  <input id="fw-ssid" placeholder="WiFi name">
+  <input id="fw-pass" placeholder="WiFi password" type="password">
+  <div class="row">
+    <button class="go alt" id="wifi-btn">Save WiFi</button>
+    <button class="go" id="flash-btn">Update watch</button>
+  </div>
+  <div class="bar"><div id="flash-bar-fill"></div></div>
+  <div class="log" id="fwlog" style="margin-top:8px">[fw] idle — connect the watch, then update</div>
+  <details style="margin-top:12px;color:var(--dim);font-size:12px">
+    <summary style="cursor:pointer">Blank board? USB from a computer</summary>
+    <p>Only for a watch that cannot boot this firmware yet. Chrome or Edge on a computer, USB JTAG <code>303a:1001</code>. Hold BOOT if the port picker is empty.</p>
+    <button class="go alt" id="usb-flash-btn">USB flash Octopus OS 2.5.0</button>
+  </details>
 </div>
 
 <div class="card">
@@ -56,7 +84,7 @@
   <input id="m-payload" placeholder="Payload: message / script / prompt">
   <button class="go" onclick="inject()">Inject into firmware</button>
   <div id="mod-list" style="margin-top:10px"><span style="color:var(--dim)">No mods yet. Firmware is stock and boring.</span></div>
-  <div class="log" id="flashlog" style="margin-top:8px">[boot] octopus-os v2.4 ready</div>
+  <div class="log" id="flashlog" style="margin-top:8px">[boot] octopus-os v2.5 ready</div>
 </div>
 
 <div class="card">
@@ -119,6 +147,13 @@
 
 <div class="card"><b>Watch → phone</b><div class="log" id="rx">[rx] idle</div></div>
 
+<footer class="site-foot">
+  <a href="privacy.html">Privacy</a>
+  <a href="disclosure.html">Disclosure</a>
+  <a href="terms.html">Terms</a>
+  <a href="mailto:obscureoctopusLLC@proton.me">Contact</a>
+</footer>
+
 <script>
 const SVC = 'a1000000-5333-5741-5443-484553570001';
 const CFG = 'a1000000-5333-5741-5443-484553570002';
@@ -136,6 +171,14 @@ function log(id, s) {
   const el = document.getElementById(id);
   el.innerHTML += '<br>' + s;
   el.scrollTop = el.scrollHeight;
+}
+function fwlog(s) {
+  const el = document.getElementById('fwlog');
+  el.innerHTML += '<br>' + s;
+  el.scrollTop = el.scrollHeight;
+}
+function bar(pct) {
+  document.getElementById('flash-bar-fill').style.width = Math.max(0, Math.min(100, pct)) + '%';
 }
 function st(s) { document.getElementById('st').textContent = s; }
 function u8(...parts) {
@@ -165,7 +208,15 @@ document.getElementById('connect').onclick = async () => {
     await watchChr.startNotifications();
     watchChr.addEventListener('characteristicvaluechanged', ev => {
       const d = new Uint8Array(ev.target.value.buffer);
-      log('rx', '[rx] ' + [...d].map(x => x.toString(16).padStart(2,'0')).join(' ') + ' ' + new TextDecoder().decode(d));
+      const text = new TextDecoder().decode(d);
+      log('rx', '[rx] ' + [...d].map(x => x.toString(16).padStart(2,'0')).join(' ') + ' ' + text);
+      if (d[0] === 11) {
+        const s = new TextDecoder().decode(d.slice(1));
+        fwlog('[ota] ' + s);
+        const m = s.match(/(\d+)%/);
+        if (m) bar(+m[1]);
+        if (/rebooting/i.test(s)) bar(100);
+      }
     });
     try {
       const ts = await server.getPrimaryService(CTS);
@@ -231,6 +282,38 @@ async function cfgWifi() {
   log('flashlog', '[ai] config written');
 }
 
+const OTA_URL = 'https://obscureoctopus.tech/firmware/octopus-tactical.bin';
+
+document.getElementById('wifi-btn').onclick = async () => {
+  try {
+    const ssid = document.getElementById('fw-ssid').value.trim();
+    const pass = document.getElementById('fw-pass').value;
+    if (!ssid) { fwlog('[err] WiFi name is empty'); return; }
+    const extra = document.getElementById('cfg').value.trim();
+    const parts = extra.split('|');
+    const uri = parts.length >= 3 ? parts.slice(2).join('|') : '';
+    await w(cfgChr, enc.encode(ssid + '|' + pass + '|' + uri));
+    fwlog('[fw] WiFi saved on watch: ' + ssid);
+  } catch (e) { fwlog('[err] ' + e.message); }
+};
+
+document.getElementById('flash-btn').onclick = async () => {
+  try {
+    bar(0);
+    const ssid = document.getElementById('fw-ssid').value.trim();
+    if (ssid) {
+      const extra = document.getElementById('cfg').value.trim();
+      const parts = extra.split('|');
+      const uri = parts.length >= 3 ? parts.slice(2).join('|') : '';
+      await w(cfgChr, enc.encode(ssid + '|' + document.getElementById('fw-pass').value + '|' + uri));
+      fwlog('[fw] WiFi saved: ' + ssid);
+    }
+    fwlog('[fw] telling watch to pull Octopus OS 2.5.0…');
+    await w(phoneChr, u8(11, OTA_URL));
+    fwlog('[fw] watch is downloading over WiFi. Keep this page open.');
+  } catch (e) { fwlog('[err] ' + ((e && e.message) ? e.message : e)); }
+};
+
 function renderMods() {
   const el = document.getElementById('mod-list');
   el.innerHTML = mods.length
@@ -262,6 +345,83 @@ async function purge(i) {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
+</script>
+<script type="module">
+import { ESPLoader, Transport, ESPRESSIF_VID, USB_JTAG_SERIAL_PID } from "https://unpkg.com/esptool-js@0.7.1/bundle.js";
+
+const PARTS = [
+  { url: "./firmware/bootloader.bin", address: 0x0, name: "bootloader" },
+  { url: "./firmware/partition-table.bin", address: 0x8000, name: "partitions" },
+  { url: "./firmware/ota-data.bin", address: 0xd000, name: "otadata" },
+  { url: "./firmware/octopus-tactical.bin", address: 0x10000, name: "app" },
+];
+
+const fwlog = (s) => window.fwlog(s);
+const bar = (pct) => window.bar(pct);
+const btn = document.getElementById("usb-flash-btn");
+if (!("serial" in navigator) && btn) {
+  btn.disabled = true;
+  btn.textContent = "USB flash needs a computer browser";
+}
+
+btn.addEventListener("click", async () => {
+  btn.disabled = true;
+  bar(0);
+  let transport;
+  try {
+    fwlog("[usb] pick the USB JTAG port…");
+    const port = await navigator.serial.requestPort({
+      filters: [{ usbVendorId: ESPRESSIF_VID, usbProductId: USB_JTAG_SERIAL_PID }],
+    });
+    fwlog("[usb] downloading Octopus OS 2.5.0…");
+    const fileArray = [];
+    for (let i = 0; i < PARTS.length; i++) {
+      const p = PARTS[i];
+      const res = await fetch(p.url);
+      if (!res.ok) throw new Error("download " + p.name + " failed (" + res.status + ")");
+      const data = new Uint8Array(await res.arrayBuffer());
+      fileArray.push({ data, address: p.address });
+      fwlog("[fw] " + p.name + " " + data.length + " bytes @ 0x" + p.address.toString(16));
+      bar(4 + ((i + 1) / PARTS.length) * 12);
+    }
+    transport = new Transport(port, false);
+    const loader = new ESPLoader({
+      transport,
+      baudrate: 921600,
+      romBaudrate: 115200,
+      terminal: {
+        clean() {},
+        writeLine(d) { fwlog("[esp] " + d); },
+        write(d) { fwlog("[esp] " + d); },
+      },
+    });
+    fwlog("[fw] connecting to ESP32-S3…");
+    const chip = await loader.main("default_reset");
+    fwlog("[fw] chip " + chip);
+    await loader.writeFlash({
+      fileArray,
+      flashSize: "16MB",
+      flashMode: "dio",
+      flashFreq: "80m",
+      eraseAll: false,
+      compress: true,
+      reportProgress(fileIndex, written, total) {
+        const name = PARTS[fileIndex] ? PARTS[fileIndex].name : String(fileIndex);
+        bar(16 + (written / Math.max(total, 1)) * 80);
+        if (written === total) fwlog("[fw] wrote " + name);
+      },
+    });
+    fwlog("[fw] resetting…");
+    await loader.after("hard_reset");
+    try { await transport.disconnect(); } catch (e) {}
+    bar(100);
+    fwlog("[usb] done. Watch should boot Octopus OS 2.5.0.");
+  } catch (e) {
+    fwlog("[err] " + ((e && e.message) ? e.message : e));
+    try { if (transport) await transport.disconnect(); } catch (x) {}
+  }
+  btn.disabled = false;
+});
 </script>
 </body>
 </html>
