@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy — OCTOPUS companion</title>
+<meta name="theme-color" content="#0a0e14">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<style>
+  :root { --bg:#0a0e14; --panel:#121826; --card:#1a2234; --accent:#00e5a0; --accent2:#4da3ff; --danger:#ff4d6d; --warn:#ffc857; --text:#e8edf5; --dim:#8b95a8; }
+  * { box-sizing:border-box; font-family:system-ui,sans-serif; }
+  body { margin:0 auto; background:var(--bg); color:var(--text); padding:18px; max-width:640px; }
+  h1 { font-size:18px; letter-spacing:2px; margin:0; }
+  h2 { font-size:13px; color:var(--text); margin:22px 0 8px; }
+  p, li { color:var(--dim); font-size:14px; line-height:1.6; }
+  a { color:var(--accent2); }
+  .brand { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .brand a { color:var(--text); text-decoration:none; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); }
+  .updated { font-size:12px; color:var(--dim); margin:0 0 18px; }
+  ul { padding-left:1.2em; }
+  .site-foot { margin:28px 0 8px; padding-top:16px; border-top:1px solid #232d45; display:flex; flex-wrap:wrap; gap:12px 18px; font-size:12px; }
+  .site-foot a { color:var(--dim); text-decoration:none; }
+  .site-foot a:hover { color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="brand">
+  <div class="dot"></div>
+  <h1><a href="index.html">OCTOPUS OS</a></h1>
+</div>
+
+<h1>Privacy Policy</h1>
+<p class="updated">Effective November 17, 2026. Operated by Obscure Octopus LLC, Texas. Questions: <a href="mailto:obscureoctopusLLC@proton.me">obscureoctopusLLC@proton.me</a>.</p>
+
+<p>This policy describes the OCTOPUS companion site at obscureoctopus.tech: a phone companion you can install as an app, Bluetooth and USB tools for a Waveshare ESP32-S3-Touch-AMOLED-2.06 watch, and public firmware files the watch or your browser can download. It matches what the site’s code actually does.</p>
+
+<h2>What we do not collect</h2>
+<p>This site does not have accounts, contact forms, or payment processing. The companion code does not use cookies, localStorage, sessionStorage, or IndexedDB, and it does not load an analytics, advertising, or tracking script.</p>
+
+<h2>What stays on your device</h2>
+<ul>
+  <li>If you install the app or keep the page open, the browser can register a service worker (<code>sw.js</code>) that stores copies of the companion pages, icons, and these legal pages in Cache Storage so the app can load again later. Firmware files under <code>/firmware/</code> are not put in that cache by the service worker.</li>
+  <li>Wi-Fi name, Wi-Fi password, and any WebSocket address you type are written from the page to the watch over Bluetooth. They are not submitted to our web server.</li>
+  <li>Messages, caller names, vitals, navigation, music, AI lines, and module payloads you enter are sent to the watch over Bluetooth, not to our web server.</li>
+  <li>Web Bluetooth and Web Serial run in your browser, after you grant permission, and talk to the watch over the local connection. That traffic does not go through our server.</li>
+</ul>
+
+<h2>What our server does send and receive</h2>
+<ul>
+  <li>The site serves ordinary page, icon, and firmware downloads. The “Update watch” action tells the watch to fetch <code>https://obscureoctopus.tech/firmware/octopus-tactical.bin</code> itself over the Wi-Fi you saved on the watch. USB flash downloads the firmware files in your browser, then writes them to the watch over USB.</li>
+  <li>The site is delivered through Cloudflare. We do not add a Cloudflare analytics beacon in the companion code. Like most sites, request logs for delivering pages and firmware may exist at the hosting layer. This policy does not invent a retention period we cannot see from the app code.</li>
+</ul>
+
+<h2>Third-party code and other sites</h2>
+<ul>
+  <li>USB flashing loads <code>esptool-js</code> 0.7.1 from unpkg.com in your browser. unpkg’s terms and privacy practices apply to that request.</li>
+  <li>If you follow a link to a vendor or other website, that site’s own policy applies. Affiliate links, when we use them, are described on the <a href="disclosure.html">affiliate disclosure</a> page.</li>
+</ul>
+
+<h2>Children</h2>
+<p>This site is a developer tool for hardware you own. It is not directed at children under 13, and it does not knowingly collect personal information from them.</p>
+
+<h2>Contact and changes</h2>
+<p>Email Obscure Octopus LLC at <a href="mailto:obscureoctopusLLC@proton.me">obscureoctopusLLC@proton.me</a>. If this policy changes, we will update this page and the effective date.</p>
+
+<footer class="site-foot">
+  <a href="privacy.html">Privacy</a>
+  <a href="disclosure.html">Disclosure</a>
+  <a href="terms.html">Terms</a>
+  <a href="mailto:obscureoctopusLLC@proton.me">Contact</a>
+</footer>
+</body>
+</html>

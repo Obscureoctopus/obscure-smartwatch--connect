@@ -1,10 +1,13 @@
-const CACHE = "octopus-watch-v1";
+const CACHE = "octopus-watch-v4";
 const ASSETS = [
   "./",
   "./index.html",
   "./companion.html",
   "./manifest.json",
-  "./icons/icon.svg"
+  "./icons/icon.svg",
+  "./privacy.html",
+  "./disclosure.html",
+  "./terms.html"
 ];
 
 self.addEventListener("install", (e) => {
@@ -21,6 +24,8 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  const path = new URL(e.request.url).pathname;
+  if (path.includes("/firmware/")) return;
   e.respondWith(
     caches.match(e.request).then((hit) =>
       hit ||
