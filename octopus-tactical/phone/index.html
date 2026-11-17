@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OCTOPUS companion</title>
+<meta name="theme-color" content="#0a0e14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<style>
+  :root { --bg:#0a0e14; --panel:#121826; --card:#1a2234; --accent:#00e5a0; --accent2:#4da3ff; --danger:#ff4d6d; --warn:#ffc857; --text:#e8edf5; --dim:#8b95a8; }
+  * { box-sizing:border-box; font-family:system-ui,sans-serif; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:18px; max-width:520px; margin:0 auto; }
+  h1 { font-size:18px; letter-spacing:2px; }
+  h2 { font-size:12px; color:var(--dim); text-transform:uppercase; letter-spacing:1.4px; }
+  .pill { font-size:10px; background:rgba(0,229,160,.15); color:var(--accent); border-radius:20px; padding:2px 9px; }
+  .card { background:var(--card); border:1px solid #232d45; border-radius:12px; padding:14px; margin:12px 0; font-size:13px; }
+  .card p { color:var(--dim); font-size:12px; margin:4px 0 0; line-height:1.5; }
+  input,select { width:100%; background:#0d1320; border:1px solid #2a3450; border-radius:8px; color:var(--text); padding:8px 10px; font-size:13px; margin:0 0 8px; }
+  button.go { background:var(--accent); color:#04140d; border:0; border-radius:8px; padding:9px 16px; font-weight:700; width:100%; cursor:pointer; }
+  button.alt { background:var(--accent2); color:#04121f; }
+  button.bad { background:var(--danger); color:#fff; }
+  .row { display:flex; gap:8px; }
+  .row > * { flex:1; }
+  .log { font-family:monospace; font-size:11px; color:var(--accent); background:#05080f; border-radius:10px; padding:12px; max-height:140px; overflow:auto; line-height:1.7; }
+  .mod-item { display:flex; align-items:center; gap:10px; background:#0d1320; border:1px solid #2a3450; border-radius:10px; padding:8px 10px; margin-bottom:6px; }
+  .mod-item button { margin-left:auto; background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:6px; padding:2px 8px; }
+</style>
+</head>
+<body>
+<div class="brand" style="display:flex;align-items:center;gap:10px">
+  <div style="width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)"></div>
+  <h1>OCTOPUS OS</h1><span class="pill">watch 2.4.0</span>
+</div>
+<p style="color:var(--dim);font-size:12px">Companion for the Waveshare S3 watch. Use <b>Chrome</b> on the phone. Watch advertises as InfiniTime. Chrome menu → <b>Add to Home screen</b> / Install app.</p>
+
+<div class="card">
+  <button class="go" id="connect">Connect watch</button>
+  <div id="st" style="margin-top:8px;font-size:12px;color:var(--dim)">disconnected</div>
+</div>
+
+<div class="card">
+  <b>Mod Injector</b>
+  <p>Flash custom modules into the watch firmware. Anything you inject lands on the watch instantly.</p>
+  <input id="m-name" placeholder="Module name (e.g. Crypto Ticker)">
+  <input id="m-icon" placeholder="Icon / short label (e.g. BTC)">
+  <select id="m-type">
+    <option value="0">Info widget (shows live text)</option>
+    <option value="1">Action button (runs a script)</option>
+    <option value="2">AI prompt (asks the assistant)</option>
+  </select>
+  <input id="m-payload" placeholder="Payload: message / script / prompt">
+  <button class="go" onclick="inject()">Inject into firmware</button>
+  <div id="mod-list" style="margin-top:10px"><span style="color:var(--dim)">No mods yet. Firmware is stock and boring.</span></div>
+  <div class="log" id="flashlog" style="margin-top:8px">[boot] octopus-os v2.4 ready</div>
+</div>
+
+<div class="card">
+  <b>Time</b>
+  <button class="go alt" onclick="syncTime()">Push phone time</button>
+</div>
+
+<div class="card">
+  <b>Messages</b>
+  <input id="from" placeholder="App / sender (e.g. Mom)">
+  <input id="text" placeholder="Notification text">
+  <button class="go" onclick="pushMsg()">Push to watch</button>
+</div>
+
+<div class="card">
+  <b>Calls</b>
+  <input id="caller" placeholder="Caller name" value="Dad">
+  <div class="row">
+    <button class="go alt" onclick="ring(true)">Ring watch</button>
+    <button class="go bad" onclick="ring(false)">End</button>
+  </div>
+</div>
+
+<div class="card">
+  <b>Vitals</b>
+  <div class="row">
+    <input id="hr" placeholder="HR" value="72">
+    <input id="spo2" placeholder="SpO2" value="98">
+  </div>
+  <div class="row">
+    <input id="temp" placeholder="temp C" value="33.6">
+    <input id="stress" placeholder="stress" value="31">
+  </div>
+  <button class="go alt" onclick="pushVitals()">Send vitals</button>
+</div>
+
+<div class="card">
+  <b>Nav / Music / AI</b>
+  <input id="navdist" placeholder="Distance" value="200 ft">
+  <input id="navtext" placeholder="Turn instruction" value="Turn right on Main">
+  <div class="row">
+    <button class="go alt" onclick="nav(0)">Right</button>
+    <button class="go alt" onclick="nav(1)">Left</button>
+    <button class="go bad" onclick="navOff()">Stop</button>
+  </div>
+  <input id="title" placeholder="Track" value="Kraken Bass">
+  <input id="artist" placeholder="Artist" value="Octopus Dub">
+  <button class="go" onclick="media()">Now playing</button>
+  <input id="you" placeholder="You said">
+  <input id="ai" placeholder="AI reply">
+  <button class="go alt" onclick="pushAI()">Push AI lines</button>
+</div>
+
+<div class="card">
+  <b>AI voice (WiFi)</b>
+  <p>ssid|password|ws://host:8765/ws — watch holds to talk after this.</p>
+  <input id="cfg" placeholder="homewifi|secret|ws://192.168.1.10:8765/ws">
+  <button class="go" onclick="cfgWifi()">Write AI config</button>
+</div>
+
+<div class="card"><b>Watch → phone</b><div class="log" id="rx">[rx] idle</div></div>
+
+<script>
+const SVC = 'a1000000-5333-5741-5443-484553570001';
+const CFG = 'a1000000-5333-5741-5443-484553570002';
+const PHONE = 'a1000000-5333-5741-5443-484553570004';
+const WATCH = 'a1000000-5333-5741-5443-484553570005';
+const CTS = '00001805-0000-1000-8000-00805f9b34fb';
+const CTS_CHR = '00002a2b-0000-1000-8000-00805f9b34fb';
+const ANS = '00001811-0000-1000-8000-00805f9b34fb';
+const ANS_CHR = '00002a46-0000-1000-8000-00805f9b34fb';
+
+let phoneChr, cfgChr, timeChr, alertChr, mods = [];
+const enc = new TextEncoder();
+
+function log(id, s) {
+  const el = document.getElementById(id);
+  el.innerHTML += '<br>' + s;
+  el.scrollTop = el.scrollHeight;
+}
+function st(s) { document.getElementById('st').textContent = s; }
+function u8(...parts) {
+  const chunks = parts.map(p => typeof p === 'number' ? Uint8Array.of(p) : p instanceof Uint8Array ? p : enc.encode(p));
+  const n = chunks.reduce((a,c)=>a+c.length,0);
+  const o = new Uint8Array(n);
+  let i = 0;
+  for (const c of chunks) { o.set(c, i); i += c.length; }
+  return o;
+}
+async function w(chr, data) {
+  if (!chr) throw new Error('not connected');
+  await chr.writeValueWithoutResponse(data);
+}
+
+document.getElementById('connect').onclick = async () => {
+  try {
+    const dev = await navigator.bluetooth.requestDevice({
+      filters: [{ name: 'InfiniTime' }],
+      optionalServices: [SVC, CTS, ANS],
+    });
+    const server = await dev.gatt.connect();
+    const svc = await server.getPrimaryService(SVC);
+    phoneChr = await svc.getCharacteristic(PHONE);
+    cfgChr = await svc.getCharacteristic(CFG);
+    const watchChr = await svc.getCharacteristic(WATCH);
+    await watchChr.startNotifications();
+    watchChr.addEventListener('characteristicvaluechanged', ev => {
+      const d = new Uint8Array(ev.target.value.buffer);
+      log('rx', '[rx] ' + [...d].map(x => x.toString(16).padStart(2,'0')).join(' ') + ' ' + new TextDecoder().decode(d));
+    });
+    try {
+      const ts = await server.getPrimaryService(CTS);
+      timeChr = await ts.getCharacteristic(CTS_CHR);
+    } catch (e) { timeChr = null; }
+    try {
+      const as = await server.getPrimaryService(ANS);
+      alertChr = await as.getCharacteristic(ANS_CHR);
+    } catch (e) { alertChr = null; }
+    st('connected to ' + (dev.name || 'watch'));
+    log('flashlog', '[ble] link up');
+    await syncTime();
+  } catch (e) { st(e.message); }
+};
+
+async function syncTime() {
+  if (!timeChr) { st('no time characteristic'); return; }
+  const n = new Date();
+  const b = new Uint8Array(10);
+  const y = n.getFullYear();
+  b[0] = y & 255; b[1] = y >> 8;
+  b[2] = n.getMonth()+1; b[3] = n.getDate();
+  b[4] = n.getHours(); b[5] = n.getMinutes(); b[6] = n.getSeconds();
+  b[7] = n.getDay();
+  await timeChr.writeValueWithoutResponse(b);
+  log('flashlog', '[time] pushed ' + n.toLocaleString());
+}
+
+async function pushMsg() {
+  const from = document.getElementById('from').value.trim() || 'Unknown';
+  const text = document.getElementById('text').value.trim() || 'You up?';
+  await w(phoneChr, u8(1, from, 0, text));
+  log('flashlog', `[notify] ${from}: ${text}`);
+}
+
+async function ring(on) {
+  const name = document.getElementById('caller').value.trim() || 'Dad';
+  await w(phoneChr, u8(2, on ? 1 : 0, name));
+  log('flashlog', on ? '[call] ringing ' + name : '[call] end');
+}
+
+async function pushVitals() {
+  const hr = +document.getElementById('hr').value || 72;
+  const spo2 = +document.getElementById('spo2').value || 98;
+  const t = Math.round(parseFloat(document.getElementById('temp').value || '33.6') * 10);
+  const stv = +document.getElementById('stress').value || 31;
+  await w(phoneChr, Uint8Array.of(5, hr & 255, spo2 & 255, t & 255, (t >> 8) & 255, stv & 255));
+  log('flashlog', '[vitals] hr ' + hr);
+}
+
+async function nav(left) {
+  await w(phoneChr, u8(3, left, document.getElementById('navdist').value, 0, document.getElementById('navtext').value));
+}
+async function navOff() { await w(phoneChr, Uint8Array.of(6)); }
+async function media() {
+  await w(phoneChr, u8(4, 1, document.getElementById('title').value, 0, document.getElementById('artist').value));
+}
+async function pushAI() {
+  await w(phoneChr, u8(7, document.getElementById('you').value, 0, document.getElementById('ai').value));
+}
+async function cfgWifi() {
+  await w(cfgChr, enc.encode(document.getElementById('cfg').value));
+  log('flashlog', '[ai] config written');
+}
+
+function renderMods() {
+  const el = document.getElementById('mod-list');
+  el.innerHTML = mods.length
+    ? mods.map((m,i) => `<div class="mod-item"><span>${m.name}</span><span class="pill">${['info','action','ai'][m.type]}</span><button onclick="purge(${i})">purge</button></div>`).join('')
+    : '<span style="color:var(--dim)">No mods yet. Firmware is stock and boring.</span>';
+}
+
+async function inject() {
+  const name = (document.getElementById('m-icon').value.trim() || document.getElementById('m-name').value.trim());
+  const payload = document.getElementById('m-payload').value.trim();
+  const type = +document.getElementById('m-type').value;
+  const full = document.getElementById('m-name').value.trim() || name;
+  if (!full) { log('flashlog', '[err] module needs a name'); return; }
+  await w(phoneChr, u8(8, type, full, 0, payload));
+  mods.push({name: full, type, payload});
+  document.getElementById('m-name').value = '';
+  document.getElementById('m-payload').value = '';
+  log('flashlog', `[flash] injected "${full}" (${['info','action','ai'][type]}) @0x${(0x8000+mods.length*256).toString(16)} — OK`);
+  renderMods();
+}
+
+async function purge(i) {
+  await w(phoneChr, Uint8Array.of(9, i));
+  log('flashlog', `[flash] purged "${mods[i].name}"`);
+  mods.splice(i,1);
+  renderMods();
+}
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
